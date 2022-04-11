@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client</title>
+</head>
+<body>
+    <button onclick="create()">Create</button>
+    <input type="text" name="room-code" id="room-code">
+    <button onclick="join()">Join</button>
+    <button onclick="leave()">Leave</button>
+    <p><b id="last-msg"></b></p>
+    <p>Joined Room: </p>
+    <p id = "roomId"></p>
+    <label>Send message to room</label><br/>
+    <input id="message-input" type="text"/><button onclick="sendMessageToRoom()">Send</button>
+
+    <ul id="messages">
+        
+    </ul>
+    <script>
+        const ws = new WebSocket("ws://localhost:9876/websocket");
+        
+        const messageList = document.getElementById("messages")
+        ws.onopen = function (event) {}
+
+        ws.onmessage = function (event) {
+            let rawData = JSON.parse(event.data)
+            let type = rawData.type
+            let room = rawData.params.room
+            let message = rawData.params.message
+           
+            if(message){
+                let messageItem = document.createElement('li')
+                messageItem.innerText = message
+                messageList.appendChild(messageItem)
+            }
+            document.getElementById("roomId").innerText = room
+
+
+        }
+
+        function create() { 
+            let hash = prompt('Declare Password')
+            if(hash){
+                const obj = { "type": "create","params":{"password":true,"hash":hash} }
+                ws.send(JSON.stringify(obj))
+            }
+            else{
+                const obj = { "type": "create","params":{"password":false} }
+                ws.send(JSON.stringify(obj))
+            }
+            
+           
+        }
+
+        function join() {
+            const code = document.getElementById("room-code").value;
+            const trypass = prompt('Enter room password')
+            if(trypass){
+                const obj = { "type": "join" , "params": { "code": code, "trypass":trypass }}
+                ws.send(JSON.stringify(obj));
+            }
+            else{
+                window.location.reload()
+            }
+        }
+
+        function sendMessageToRoom() {
+            const message = document.getElementById('message-input').value
+            const obj = {"type":"message", "params": {"message": message,"room":document.getElementById("roomId").innerText}}
+            ws.send(JSON.stringify(obj))
+        }
+
+        function leave() { ws.send('{ "type": "leave" }'); }
+    </script>
+</body>
+</html>
